@@ -136,35 +136,40 @@ The frontend build output is written to `frontend/dist`.
 
 ## Deployment
 
-Deploy the backend and frontend as separate services, and create a MongoDB
-database reachable from the backend host.
+The repository includes a [`render.yaml`](./render.yaml) Blueprint for the
+backend. Deploy the frontend separately on Vercel. Create a MongoDB database
+reachable from the backend host before deploying.
 
 ### Backend service
 
-1. Deploy the `backend` directory as a Node.js service.
-2. Install dependencies with `npm install` and use `npm start` to run it.
-3. Configure these variables in the hosting provider's backend environment:
-   `PORT` (if required by the host), `MONGO_URI`, `GROQ_API_KEY`,
-   `AUTH_TOKEN_SECRET`, and `FRONTEND_URL`.
-4. Set `FRONTEND_URL` to the exact public origin of the deployed frontend,
-   including the scheme (for example, `https://notes.example.com`) and without
-   a trailing slash.
-5. Use a unique, randomly generated `AUTH_TOKEN_SECRET` of at least 32
-   characters. Keep all backend secrets out of the frontend and source control.
-6. Configure MongoDB network access so the backend host can connect. Avoid
+1. In Render, create a new **Blueprint** and connect this GitHub repository.
+2. Render reads `render.yaml` and creates the backend web service using
+   `backend` as its root directory. The Blueprint generates
+   `AUTH_TOKEN_SECRET`; enter `MONGO_URI`, `GROQ_API_KEY`, and a temporary
+   `FRONTEND_URL` when prompted.
+3. `FRONTEND_URL` must be the exact deployed frontend origin, including the
+   scheme (for example, `https://notesmakingai.vercel.app`) and without a
+   trailing slash. After creating the Vercel project, update this value in the
+   Render service's environment settings and redeploy.
+4. Configure MongoDB network access so the backend host can connect. Avoid
    exposing the database to unrestricted public access.
 
 The backend connects to MongoDB before it starts listening for requests. A
-database connection failure prevents the service from starting.
+database connection failure prevents the service from starting. The Blueprint
+uses Render's free web service plan; free services may spin down when idle and
+take longer to respond on the first request after inactivity.
 
 ### Frontend static site
 
-1. Deploy the `frontend` directory as a static Vite site.
-2. Set `VITE_API_URL` to the public backend origin (for example,
-   `https://api.example.com`) in the frontend build environment.
-3. Build with `npm run build` and publish the generated `dist` directory.
-4. If the frontend host supports a custom domain, set the backend's
-   `FRONTEND_URL` to that final origin and redeploy/restart the backend.
+1. In Vercel, import this GitHub repository as a new project.
+2. Set **Root Directory** to `frontend`.
+3. Add `VITE_API_URL` with the Render backend's public origin (for example,
+   `https://notesmakingai-api.onrender.com`). Do not add a trailing slash.
+4. Vercel should detect Vite. Use `npm run build` as the build command and
+   `dist` as the output directory, then deploy.
+5. Copy the resulting Vercel production origin into `FRONTEND_URL` on Render,
+   save the setting, and redeploy the backend.
+6. Redeploy the Vercel project after changing `VITE_API_URL`.
 
 `VITE_API_URL` is compiled into the browser bundle. Never put `GROQ_API_KEY`,
 `MONGO_URI`, or `AUTH_TOKEN_SECRET` in a `VITE_*` variable.
